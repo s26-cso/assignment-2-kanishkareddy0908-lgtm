@@ -18,7 +18,7 @@ make_node:
 
 .globl insert
 insert:
-       addi x2,x2,-24    #sp-=24(allocate stack space)
+       addi x2,x2,-32    #sp-=32(allocate stack space)
        sd x1,0(x2)       #store ra
        sd x10,8(x2)      #save root pointer
        sd x11,16(x2)     #save value 
@@ -48,26 +48,37 @@ i_base:
        call make_node    #create new node(returns in x10)
 i_end:
       ld x1,0(x2)        #restore return address
-      addi x2,x2,24      #deallocate stack
+      addi x2,x2,32      #deallocate stack
       jalr x0,0(x1)      #return
 
 
 .globl get
 get:
-     beq x10,x0,null     #if root==NULL return NULL
-     lw x5,0(x10)        #x5=root->val
-     beq x5,x11,found    #if root->val==target go to found
-     blt x11,x5,left     #if target<root->val go to left subtree
-     ld x10,16(x10)      #x10=root->right
-     jal x0,get          #jump to get
+     addi x2,x2,-16     # allocate stack
+     sd x1,0(x2)        # save ra
+     beq x10,x0,null    # if root == NULL
+     lw x5,0(x10)       # x5 = root->val
+     beq x5,x11,found   # if equal
+     blt x11,x5,left    # if val < root->val
+     ld x10,16(x10)     # go right
+     call get           # recursive call
+     jal x0,done
+
 left:
-    ld x10,8(x10)        #x10=root->left
-    jal x0,get           #jump to get
+     ld x10,8(x10)      # go left
+     call get           # recursive call
+     jal x0,done
+
 found:
-      jalr x0,0(x1)      #return curr node
+     # x10 already has correct node
+     jal x0,done
+
 null:
-     addi x10,x0,0       #return NULL
-     jalr x0,0(x1)   
+     addi x10,x0,0      # return NULL
+done:
+     ld x1,0(x2)        # restore ra
+     addi x2,x2,16      # deallocate stack
+     jalr x0,0(x1)      # return   
 
 
 .globl getAtMost

@@ -1,70 +1,78 @@
 .section .data
-filename: 
-         .string "input.txt"
-mode:     
-     .string "r"
-yes:  
-    .string "Yes\n"
-no:   .
-   string "No\n"
+filename:  .string "input.txt"
+mode:  .string "r"
+yes: .string "Yes\n"
+no: .string "No\n"
 
 .section .text
 .globl main
-.extern fopen,fseek,fread,ftell,printf
-
+.extern fopen,fseek,fread,ftell,printf,fclose
 main:
-      addi x2,x2,-16     #allocate space for stack
-      la x10,filename
-      la x11,mode
-      call fopen         #fopen("input.txt","r")
-      addi x8,x10,0      #x8=x10
-      addi x10,x8        #save file pointer
-      addi x10,x8,0      
-      addi x11,x0,0
-      addi x12,x0,2
-      call fseek          #fseek(fp,0,seekend)
-      addi x10,x8,0
-      call ftell
-      mv x9,x10          # size
-      addi x19,x9,-1     # right = size - 1
-      addi x19, x19, -1
-      li x18,0           # left = 0
-loop:
-    bge x18, x19, is_palindrome
-    mv x10, x8
-    mv x11, x18
-    li x12, 0
-    call fseek           #fseek(fp,left,SEEK_SET)
-    addi x10, x2, 0     # address of c1 (stack)
-    li x11, 1
-    li x12, 1
-    mv x13, x8
-    call fread           # fread(&c1,1,1,fp)
-    # fseek(fp, right, SEEK_SET)
-    mv x10, x8
-    mv x11, x19
-    li x12, 0
+    addi x2,x2,-32    #allocate stack
+    sw x1,28(x2)      #save ra
+    sw x8,24(x2)      #save s0(fp)
+    sw x9,20(x2)      #save s1(right)
+    sw x18,16(x2)     #save s2(left)
+    la x10,filename         
+    la x11,mode             
+    call fopen
+    addi x8,x10,0           
+    beq x8,x0,exit_err      #if fp==NULL,exit
+    addi x10,x8,0           
+    addi x11,x0,0           
+    addi x12,x0,2           # SEEK_END
     call fseek
-    addi x10, x2, 1     # address of c2 (stack)
-    li x11, 1
-    li x12, 1
-    mv x13, x8
-    call fread           #fread(&c2,1,1,fp)
-    lb x5, 0(x2)
-    lb x6, 1(x2)
+    
+    addi x10,x8,0           
+    call ftell              
+    addi x9,x10,-1          # x9 = right = size-1
+    addi x18,x0,0           # x18 = left = 0
+
+loop:
+    bge x18,x9,is_palindrome 
+    addi x10,x8,0           
+    addi x11,x18,0          
+    addi x12,x0,0           # SEEK_SET
+    call fseek
+    addi x10,x2,0           # buffer at stack
+    addi x11,x0,1           
+    addi x12,x0,1           
+    addi x13,x8,0           
+    call fread              
+    addi x10,x8,0           
+    addi x11,x9,0           
+    addi x12,x0,0           # SEEK_SET
+    call fseek
+    addi x10,x2,1           # buffer at stack+1
+    addi x11,x0,1           
+    addi x12,x0,1           
+    addi x13,x8,0           
+    call fread              
+
+    lbu x5,0(x2)            
+    lbu x6,1(x2)            
     bne x5,x6,not_palindrome
-    addi x18,x18,1
-    addi x19,x19,-1
-    jal x0,loop
+
+    addi x18,x18,1          # left++
+    addi x9,x9,-1           # right--
+    jal x0,loop             
 
 is_palindrome:
-    la x10, yes_str
+    la x10,yes
     call printf
-    jal x0,exit    
+    jal x0,cleanup          
+
 not_palindrome:
     la x10,no
     call printf
-exit:
-    addi x2,x2,16        #deallocate stack
-    addi x10,x0,0      
+cleanup:
+    addi x10,x8,0           
+    call fclose
+exit_err:
+    lw x1,28(x2)            
+    lw x8,24(x2)            
+    lw x9,20(x2)
+    lw x18,16(x2)
+    addi x2,x2,32           
+    addi x10,x0,0           
     jalr x0,0(x1)
