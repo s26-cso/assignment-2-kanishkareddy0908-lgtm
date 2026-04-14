@@ -3,10 +3,10 @@
 make_node:
           addi x2,x2,-16 #sp-=16(allocate stack space)
           sd x1,0(x2)    #save ra on stack
-          sd x10,8(x2)   #save val on stack
+          sw x10,8(x2)   #save val on stack
           li x10,24      #malloc size
           call malloc
-          ld x5,8(x2)    #reload val from stack
+          lw x5,8(x2)    #reload val from stack
           sw x5,0(x10)    #store val
           sd x0,8(x10)    #left=NULL
           sd x0,16(x10)   #right=NULL
@@ -54,19 +54,19 @@ i_end:
 
 .globl get
 get:
-     addi x2,x2,-16     # allocate stack
-     sd x1,0(x2)        # save ra
-     beq x10,x0,null    # if root == NULL
-     lw x5,0(x10)       # x5 = root->val
-     beq x5,x11,found   # if equal
-     blt x11,x5,left    # if val < root->val
-     ld x10,16(x10)     # go right
-     call get           # recursive call
+     addi x2,x2,-16     #allocate stack
+     sd x1,0(x2)        #save ra
+     beq x10,x0,null    #if root==NULL
+     lw x5,0(x10)       #x5=root->val
+     beq x5,x11,found   #if equal
+     blt x11,x5,left    #if val<root->val
+     ld x10,16(x10)     #go right
+     call get           #recursive call
      jal x0,done
 
 left:
-     ld x10,8(x10)      # go left
-     call get           # recursive call
+     ld x10,8(x10)      #go left
+     call get           #recursive call
      jal x0,done
 
 found:
@@ -74,18 +74,18 @@ found:
      jal x0,done
 
 null:
-     addi x10,x0,0      # return NULL
+     addi x10,x0,0      #return NULL
 done:
-     ld x1,0(x2)        # restore ra
-     addi x2,x2,16      # deallocate stack
-     jalr x0,0(x1)      # return   
+     ld x1,0(x2)        #restore ra
+     addi x2,x2,16      #deallocate stack
+     jalr x0,0(x1)      #return   
 
 
 .globl getAtMost
 getAtMost:
       addi x5,x0,-1      #ans=-1
 loop:
-     beq x11,x0,done     #if root==NULL return ans=-1
+     beq x11,x0,end     #if root==NULL return ans=-1
      lw x6,0(x11)        #x6=root->val
      beq x6,x10,dup      #root->val==target return val
      blt x6,x10,g_right  #if root->val<target go to right
@@ -98,6 +98,6 @@ g_right:
 dup:
     addi x10,x6,0      #return the given val
     jalr x0,0(x1)
-done:
+end:
      addi x10,x5,0       #return ans
      jalr x0,0(x1)       #return
