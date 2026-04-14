@@ -84,7 +84,7 @@ store:
     addi x23,x23,-1       #i--
     jal x0,loop
 print:
-    addi x23,,x0,0        #i=0
+    addi x23,x0,0        #i=0
 print_loop:
     beq x23,x18,exit
     slli x5,x23,3
